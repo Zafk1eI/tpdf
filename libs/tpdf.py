@@ -9,46 +9,51 @@ from glob import glob
 from typing import Generator
 
 from pdfrw import PageMerge, PdfFileReader, PdfFileWriter
-from reportlab.lib.pagesizes import A4
+from reportlab.lib.pagesizes import A4, landscape
 from reportlab.lib.utils import ImageReader
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.pdfgen import canvas
 
 CUR_PATH = os.path.dirname(os.path.abspath(__file__))
-FILES = os.path.join(CUR_PATH, 'tpdf_templates')
-
-FieldParams = namedtuple('FieldParams', 'x y name font_name font_size width')
-page_size = A4
-page_width = page_size[0]
-page_height = page_size[1]
+FILES = os.path.join(CUR_PATH, "tpdf_templates")
+FieldParams = namedtuple("FieldParams", "x y name font_name font_size width")
 # https://stackoverflow.com/questions/139655/convert-pixels-to-points
-corr = {'x': 205.0, 'y': 11.0, 'px_to_pt': 3/4, 'pt_to_px': 4/3}
+corr = {"x": 205.0, "y": 11.0, "px_to_pt": 3 / 4, "pt_to_px": 4 / 3}
 
 
 class TPdf:
 
-    def __init__(self, **kwargs):
+    def __init__(self, page_orientation='portrait', **kwargs):
+        if page_orientation == "landscape":
+            self.page_size = landscape(A4)
+        else:
+            self.page_size = A4
+        self.page_width = self.page_size[0]
+        self.page_height = self.page_size[1]
         self.fields = {}
         self.fields.update(kwargs)
         self.fields = self.format_for_pdf(self.fields)
         self.documents = {}
-        self.FONTS = os.path.abspath(os.path.join(CUR_PATH, '../static/fonts'))
+        self.FONTS = os.path.abspath(os.path.join(CUR_PATH, "../static/fonts"))
 
     @staticmethod
-    def load_fields_from_file(name='', to_front=False):
+    def load_fields_from_file(page_height: float, name="", to_front=False):
         """
         :param name: имя документа ( = имена файлов pdf, json)
+        :param page_height
         :param to_front: нужно ли делать преобразование pdf координат в координаты
             html веб формы в пиксели?
         :return: словарь с набором параметров полей постранично
         """
-        pdf_fields_path = os.path.join(FILES, name, 'fields.json')
-        pdf_fields = json.load(open(pdf_fields_path, 'r'))
+        pdf_fields_path = os.path.join(FILES, name, "fields.json")
+        pdf_fields = json.load(open(pdf_fields_path, "r"))
         for page in pdf_fields:
             if to_front:
                 pdf_fields[page] = [
-                    TPdf.convert_coord_to_front(FieldParams(*f))
+                    TPdf.convert_coord_to_front(
+                        FieldParams(*f), page_height=page_height
+                    )
                     for f in pdf_fields[page]
                 ]
             else:
@@ -57,17 +62,17 @@ class TPdf:
         return pdf_fields
 
     @staticmethod
-    def save_fields_to_file(new_pos):
+    def save_fields_to_file(new_pos, page_height: float):
         """
         :param new_pos: позиции полей + имя файла pdf, json
         :return: успех или не успех
         """
-        file_name = new_pos.pop('file_name')
-        pdf_fields_path = os.path.join(FILES, file_name, 'fields.json')
-        res_positions = json.load(open(pdf_fields_path, 'r'))
+        file_name = new_pos.pop("file_name")
+        pdf_fields_path = os.path.join(FILES, file_name, "fields.json")
+        res_positions = json.load(open(pdf_fields_path, "r"))
         for page in new_pos:
             new_pos[page] = [
-                TPdf.convert_coord_from_front(FieldParams(*f))
+                TPdf.convert_coord_from_front(FieldParams(*f), page_height=page_height)
                 for f in new_pos[page]
             ]
         res_positions.update(new_pos)
@@ -78,24 +83,30 @@ class TPdf:
         # преобразовываем итоговый словарь с координатами в json-строку с
         # нужными переносами строк, убираем лишние кавычки и слэши и сохраняем
         # итоговую (параметры одного поля в одной строке) json-строку в файл
-        new_pos_str = json.dumps(res_positions, indent=4).\
-            replace('"[', '[').replace(']"', ']').replace('\\', '')
-        with open(pdf_fields_path, 'w') as outfile:
+        new_pos_str = (
+            json.dumps(res_positions, indent=4)
+            .replace('"[', "[")
+            .replace(']"', "]")
+            .replace("\\", "")
+        )
+        with open(pdf_fields_path, "w") as outfile:
             outfile.write(new_pos_str)
         return True
 
     @staticmethod
-    def convert_coord_to_front(field: 'FieldParams') -> 'FieldParams':
+    def convert_coord_to_front(
+        field: "FieldParams", page_height: float
+    ) -> "FieldParams":
         """Конвертирует координаты с координат pdf в координаты веб-интерфейса
 
         Для отображения полей на веб форме нужно корректировать значения координат
         и ширину полей, в файле хранятся координаты под вставку в pdf файл
         """
-        scale = corr['pt_to_px']
+        scale = corr["pt_to_px"]
         font_size = int(field.font_size * scale + 0.5)
         return FieldParams(
-            x=field.x * scale + corr['x'],
-            y=(page_height - field.y - field.font_size) * scale + corr['y'],
+            x=field.x * scale + corr["x"],
+            y=(page_height - field.y - field.font_size) * scale + corr["y"],
             name=field.name,
             font_name=field.font_name,
             font_size=font_size,
@@ -103,13 +114,15 @@ class TPdf:
         )
 
     @staticmethod
-    def convert_coord_from_front(field: 'FieldParams') -> 'FieldParams':
+    def convert_coord_from_front(
+        field: "FieldParams", page_height: float
+    ) -> "FieldParams":
         """Конвертирует координаты с фронта в координаты pdf"""
-        scale = corr['px_to_pt']
+        scale = corr["px_to_pt"]
         font_size = int(field.font_size * scale + 0.5)
         return FieldParams(
-            x=round((field.x - corr['x']) * scale, 2),
-            y=round(page_height - (field.y - corr['y']) * scale - font_size, 2),
+            x=round((field.x - corr["x"]) * scale, 2),
+            y=round(page_height - (field.y - corr["y"]) * scale - font_size, 2),
             name=field.name,
             font_name=field.font_name,
             font_size=font_size,
@@ -118,16 +131,16 @@ class TPdf:
 
     def add_document(self, name, fill_x=False):
         # подгружаем из файла параметры полей (координаты, размер шрифта и др.)
-        pdf_fields = self.load_fields_from_file(name)
+        pdf_fields = self.load_fields_from_file(page_height=self.page_height, name=name)
 
         # регистрируем все шрифты, имеющиеся в папке со шрифтами
-        for filename in glob(os.path.join(self.FONTS, '*.ttf')):
+        for filename in glob(os.path.join(self.FONTS, "*.ttf")):
             pdfmetrics.registerFont(TTFont(os.path.basename(filename)[:-4], filename))
-        last_font = ['DejaVuSans', 10]
+        last_font = ["DejaVuSans", 10]
 
-        pdf_form_path = os.path.join(FILES, name, 'form.pdf')
-        D_IMAGES = os.path.join(FILES, name, 'images')
-        pdf_form = PdfFileReader(open(pdf_form_path, 'rb'))
+        pdf_form_path = os.path.join(FILES, name, "form.pdf")
+        D_IMAGES = os.path.join(FILES, name, "images")
+        pdf_form = PdfFileReader(open(pdf_form_path, "rb"))
         self.documents[name] = []
         # накладываем значения полей на страницы формы
         for page_number in range(len(pdf_form.pages)):
@@ -139,7 +152,7 @@ class TPdf:
                 packet = io.BytesIO()
                 # create a new PDF with Reportlab
                 # bottomup=0 - отсчёт Y делаем сверху вниз, как на фронте
-                can = canvas.Canvas(packet, pagesize=page_size)
+                can = canvas.Canvas(packet, pagesize=self.page_size)
                 can.setFont(*last_font)  # в момент создания страницы нужно
                 # перебираем поля и заполняем их в pdf canvas
                 for field in pdf_fields[page_num]:
@@ -149,12 +162,17 @@ class TPdf:
                         last_font = new_font
                         can.setFont(*last_font)
                     # если это картинка, то рисуем её
-                    if field.name.find('.') > -1:
+                    if field.name.find(".") > -1:
                         img = ImageReader(os.path.join(D_IMAGES, field.name))
-                        can.drawImage(img, field.x, field.y,
-                                      width=field.width, mask='auto',
-                                      preserveAspectRatio=True,
-                                      anchor='se')
+                        can.drawImage(
+                            img,
+                            field.x,
+                            field.y,
+                            width=field.width,
+                            mask="auto",
+                            preserveAspectRatio=True,
+                            anchor="se",
+                        )
                     if fill_x:
                         # заполняем именем поля, если требуется для настройки
                         val = field.name
@@ -165,8 +183,8 @@ class TPdf:
                         val = str(self.fields[field.name])
                     else:
                         # в крайнем случае, пытаемся вычислить поле из property
-                        val = getattr(self, field.name, '')
-                    text = val if val else ''
+                        val = getattr(self, field.name, "")
+                    text = val if val else ""
                     # выводим данные (текст) в нужную позицию
                     y_margin = 0
                     for txt in self.text_wrap(text, field.width, can):
@@ -181,9 +199,9 @@ class TPdf:
             self.documents[name].append(page)
 
     @staticmethod
-    def get_res(pdf_writer, b64='True'):
-        """ Вывод результата используется в двух местах, поэтому вынес этот
-        кусок кода в отдельную функцию """
+    def get_res(pdf_writer, b64="True"):
+        """Вывод результата используется в двух местах, поэтому вынес этот
+        кусок кода в отдельную функцию"""
 
         # результирующий pdf сохраняем также в бинайрный файл в памяти
         output_file = io.BytesIO()
@@ -191,17 +209,23 @@ class TPdf:
         output_file.seek(0)
 
         # преобразуем готовый pdf файл в base64, если необходимо
-        if b64 == 'True':
-            res = base64.b64encode(output_file.read()).decode('utf-8')
+        if b64 == "True":
+            res = base64.b64encode(output_file.read()).decode("utf-8")
         else:
             res = output_file.read()
         return res
 
-    def get_pdf(self, name, b64='True', fill_x=False):
-        return self.get_complete([(name, 1), ], b64, fill_x)
+    def get_pdf(self, name, b64="True", fill_x=False):
+        return self.get_complete(
+            [
+                (name, 1),
+            ],
+            b64,
+            fill_x,
+        )
 
-    def get_complete(self, complete, b64='True', fill_x=False):
-        """ Собираем несколько pdf файлов в один комплект документов
+    def get_complete(self, complete, b64="True", fill_x=False):
+        """Собираем несколько pdf файлов в один комплект документов
         :param complete: list of tuples список кортежей, каждый из кортежей
             содержит на первой позиции имя документа, на второй позиции
             количество копий документа (не страниц, а копий) которое
@@ -219,7 +243,7 @@ class TPdf:
             count = doc[1]  # необходимое количество копий документа
             # если документ ещё не сформирован, то формируем его
             if name not in self.documents:
-                self.add_document(name, fill_x)
+                self.add_document(name=name, fill_x=fill_x)
             # добавляем нужное количество копий документа с именем name
             for i in range(count):
                 # перебираем страницы документа и добавляем их в итоговый pdf
@@ -228,8 +252,9 @@ class TPdf:
         return self.get_res(pdf_writer, b64)
 
     @staticmethod
-    def text_wrap(text: str, width: int, canvas: 'canvas.Canvas') -> \
-            Generator[str, None, None]:
+    def text_wrap(
+        text: str, width: int, canvas: "canvas.Canvas"
+    ) -> Generator[str, None, None]:
         """Делит text на части, если текст не помещается в width
 
         Args:
@@ -248,7 +273,7 @@ class TPdf:
             # длина очередного символа нужна заранее
             symbol_len = canvas.stringWidth(text[i])
             # запоминаем позицию пробела или вычисляем длину очередного слова
-            if text[i] == ' ':
+            if text[i] == " ":
                 last_space = i
                 word_len = 0
             else:
@@ -274,7 +299,7 @@ class TPdf:
 
     @staticmethod
     def format_for_pdf(data):
-        """ Форматируем данные для впечатывания полей в pdf
+        """Форматируем данные для впечатывания полей в pdf
         1. None заменяем на пустые строки
         2. Дату из вида 'ГГГГ-ММ-ДД' преобразует в 'ДД.ММ.ГГГГ'
         :param data: словарь значения которого надо отформатировать
@@ -283,13 +308,12 @@ class TPdf:
         for key in data.keys():
             # 1. Заменяем None на пустые строки
             if data[key] is None:
-                data[key] = ''
+                data[key] = ""
             # 2. Форматируем дату и время
-            if key.find('date') > -1:
+            if key.find("date") > -1:
                 try:
                     data[key] = dt.strftime(
-                        dt.strptime(data[key], '%Y-%m-%d'),
-                        '%d.%m.%Y'
+                        dt.strptime(data[key], "%Y-%m-%d"), "%d.%m.%Y"
                     )
                 except:
                     pass  # если формат даты другой, то не надо паниковать.
@@ -298,28 +322,30 @@ class TPdf:
 
     @cached_property
     def fio(self):
-        return ' '.join([
-            self.fields.get('last_name', ''),
-            self.fields.get('first_name', ''),
-            self.fields.get('middle_name', ''),
-        ])
+        return " ".join(
+            [
+                self.fields.get("last_name", ""),
+                self.fields.get("first_name", ""),
+                self.fields.get("middle_name", ""),
+            ]
+        )
 
     @cached_property
     def fio_short(self):
-        return '{} {}.{}.'.format(
-            self.fields.get('last_name', ''),
-            self.fields.get('first_name', '')[:1],
-            self.fields.get('middle_name', '')[:1],
+        return "{} {}.{}.".format(
+            self.fields.get("last_name", ""),
+            self.fields.get("first_name", "")[:1],
+            self.fields.get("middle_name", "")[:1],
         )
 
     @cached_property
     def now(self):
-        return dt.now().strftime('%d.%m.%Y')
+        return dt.now().strftime("%d.%m.%Y")
 
     @property
     def x(self):
-        return 'X'
+        return "X"
 
     @property
     def doc_type(self):
-        return 'Паспорт РФ'
+        return "Паспорт РФ"

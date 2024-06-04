@@ -1,18 +1,37 @@
 <html lang="ru">
 <head>
+    <script type="text/javascript">
+        // Проверяем, есть ли параметр page_num в адресной строке
+        const urlParams = new URLSearchParams(window.location.search);
+        const pageParam = urlParams.get('page_num');
+
+        // Если параметр page_num не задан, перенаправляем на URL с параметром page_num=1
+        if (!pageParam) {
+            window.location.href = window.location.href + '?page_num=1';
+        }
+    </script>
     <script src="/static/js/jquery.min.js"></script>
     <script src="/static/js/jquery-ui.min.js"></script>
     <script type="text/javascript">
+
+        var pageHeight = {{ page_height }};
+
         $(document).ready(function () {
             $(function() {
                 $(".field_div").draggable().resizable({handles: "e, w"});
                 var page = (parseInt($("#page_num").text()) - 1).toString();
                 $("#page_" + page).show();
             });
-
+            
+            // обработка смены страниц
             function change_page(delta) {
                 var old_page = parseInt($("#page_num").text())
                 var new_page = (old_page + delta).toString();
+
+                if (new_page < 1) {
+                    return;
+                }
+
                 var query = window.location.search.substring(1);
                 var vars = query.split('&');
                 // ищем в адресной строке параметр номера страницы для изменения
@@ -60,7 +79,9 @@
                     url: "/tpdf/save_form_fields",
                     {#data: {"pos": JSON.stringify(pos)},#}
                     contentType: "application/json; charset=utf-8",
-                    data: JSON.stringify({"pos": pos}),
+                    data: JSON.stringify({"pos": pos,
+                    "page_height": pageHeight 
+                }),
                     dataType: "json"
                 }).always(function (data, status) {
                     console.log(data);
@@ -76,7 +97,7 @@
             @font-face {
                 font-family: {{ font }};
                 src: url("/static/fonts/{{ font }}.ttf");
-             }
+            }
         {% endfor %}
 
         .field_div {
@@ -96,12 +117,12 @@
     <div id="page_{{ page_i }}" style="display: none;">
         {% for field in fields[page_i] %}
             <div class="field_div ui-widget-content"
-                 style="
-                     left: {{ field.x }}px;
-                     top: {{ field.y }}px;
-                     width: {{ field.width }}px;
-                     font-size: {{ field.font_size }}px;
-                     font-family: {{ field.font_name }};
+                style="
+                    left: {{ field.x }}px;
+                    top: {{ field.y }}px;
+                    width: {{ field.width }}px;
+                    font-size: {{ field.font_size }}px;
+                    font-family: {{ field.font_name }};
                 ">
                 {{ field.name }}
             </div>
@@ -113,13 +134,20 @@
     <label id="page_num" style="margin-right: 10px; margin-left: 10px;">{{ page_num }}</label>
     <button id="next_page">След</button>
 </span>
+
 <span style="position:absolute;left:10px; top:330px;">
     <button id="save_pos">Сохранить позиции</button>
 </span>
 
+<span style="position:absolute;left:10px; top:360px;">
+    <a href="/tpdf/generate_and_download/{{ certificate_id }}">
+    <button id="generate_certificate">Сгенерировать</button>
+    </a>
+</span>
+
 <div id="ipdf" style="position:absolute;left:200px;">
     <iframe src="/tpdf/get_file?pdf_name={{ pdf_name }}#toolbar=0&statusbar=0&navpanes=0&scrollbar=1&zoom=100&page={{ page_num }}"
-            height="1132" width="808" frameborder="0"></iframe>
+            height="{{ page_height * 4/3 }}" width="{{ page_width * 4/3 }}" frameborder="0"></iframe>
 </div>
 <div style="position:absolute;left:200px;z-index: 11;opacity: 0.01;height: 1132px;width: 808px;background-color: green;"></div>
 
