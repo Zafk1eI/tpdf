@@ -3,9 +3,9 @@ from glob import glob
 from urllib.parse import quote
 from pdfrw import PdfReader
 import zipfile
+import json
 
-# import aiohttp_jinja2
-# from aiohttp import web
+
 from io import BytesIO
 from flask import (
     Blueprint,
@@ -68,7 +68,7 @@ def positioning(certificate_id):
 
     # Ограничение страниц
     fields = tpdf.load_fields_from_file(
-        page_height=height, name=in_data["pdf_name"], to_front=True
+        height, name=in_data["pdf_name"], to_front=True
     )
 
     # if str(int(page_num) - 1) not in list(fields.keys()):
@@ -87,6 +87,41 @@ def positioning(certificate_id):
         page_width=width, 
         certificate_id=certificate_id
     )
+    
+@router.route("/tpdf/update_font", methods=["POST"])
+def update_font():
+    data = request.json
+    json_path = os.path.join('libs', 'tpdf_templates', data['pdf_name'], 'fields.json')
+    try:
+        with open(file=json_path, mode="r", encoding='utf-8') as json_file:
+            fields = json.load(json_file)
+    except FileNotFoundError:
+        return jsonify({"status": "error", "message": "File not found"}), 404
+    except json.JSONDecodeError:
+        return jsonify({"status": "error", "message": "Invalid JSON format"}), 400
+    
+    updated = False
+    
+    for page, field_list in fields.items():
+        if str(page) == str(data['page_num']):
+            for field in field_list:
+                field_name = field[2]
+                if field_name in data['font_sizes']:
+                    field_font_size = data['font_sizes'][field_name]
+                    field[4] = int(field_font_size)
+                    field[6] = bool(data['visibility'][field_name])
+                    updated = True
+        else:
+            return jsonify({"status": "error", "message": "page not found"}), 400
+
+    if not updated:
+        return jsonify({"status": "error", "message": "Field not found"}), 404
+    
+    # Сохранение обновленного JSON-файла
+    with open(json_path, "w", encoding='utf-8') as json_file:
+        json.dump(fields, json_file, ensure_ascii=False, indent=4)
+
+    return jsonify({"status": "success"}), 200
     
     
 @router.route("/tpdf/generate_and_download/<string:certificate_id>", methods=["GET"])
@@ -179,6 +214,14 @@ def allowed_file(filename):
 
 @router.route("/tpdf/create_directory/<string:certificate_id>", methods=["POST"])
 def upload_file(certificate_id):
+    data = {
+    "0": [
+        [323.25, 427.45, "", "DejaVuSans", 12, 134],
+        [321.75, 392.95, "FIO", "DejaVuSans", 24, 259],
+        [485.25, 229.45, "state", "DejaVuSans", 12, 119],
+        [154.5, 225.7, "enddata", "DejaVuSans", 12, 88],
+    ]
+}
     if request.method == "POST":
         if "file" not in request.files:
             return jsonify("error: No file"), 400
@@ -191,8 +234,8 @@ def upload_file(certificate_id):
             if not os.path.exists(directory):
                 os.makedirs(directory, exist_ok=False)
                 file.save(os.path.join(directory, filename))
-                with open(os.path.join(directory, "fields.json"), "w") as json:
-                    pass
+                with open(os.path.join(directory, "fields.json"), "w") as json_file:
+                    json.dumps(data, json_file, ensure_ascii=False, indent=4)
                 return jsonify("message: Upload seccessfully"), 200
             else:
                 return jsonify("error: dir exist"), 400
@@ -205,22 +248,10 @@ def example():
 
     data = {
         "data": {
-            "last_name": "Иванова",
-            "first_name": "Мария",
-            "middle_name": "Иванова",
-            "gender": "Ж",
-            "birth_date": "01.01.2000",
-            "birth_place": "г.Москва",
-            "registration": "г.Москва, ул. Полковника Исаева, дом 17, кв 43",
-            "phone": "+7978010000",
-            "Telephone": 1234,
-            "1_work": "Радистка 3 категории, в/ч 89031",
-            "2_work": "Радистка 1 категорvalues/ч 17043",
-            "3_work": "Командир отделения радистов, в/ч 17043 главного управления разведки комитета государственной безопасности республики Беларусь.",
+            "lastname": "Иванова"
         },
         "complete": [
             ["409f05934Rtyh", 1],
-            ["ZayavlenieNaZagranpasport", 1],
         ],
     }
 

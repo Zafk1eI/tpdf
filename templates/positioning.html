@@ -1,155 +1,295 @@
-<html lang="ru">
-<head>
-    <script type="text/javascript">
-        // Проверяем, есть ли параметр page_num в адресной строке
-        const urlParams = new URLSearchParams(window.location.search);
-        const pageParam = urlParams.get('page_num');
+    <html lang="ru">
+    <head>
+        <script type="text/javascript">
+            // Проверяем, есть ли параметр page_num в адресной строке
+            const urlParams = new URLSearchParams(window.location.search);
+            const pageParam = urlParams.get('page_num');
 
-        // Если параметр page_num не задан, перенаправляем на URL с параметром page_num=1
-        if (!pageParam) {
-            window.location.href = window.location.href + '?page_num=1';
-        }
-    </script>
-    <script src="/static/js/jquery.min.js"></script>
-    <script src="/static/js/jquery-ui.min.js"></script>
-    <script type="text/javascript">
+            // Если параметр page_num не задан, перенаправляем на URL с параметром page_num=1
+            if (!pageParam) {
+                window.location.href = window.location.href + '?page_num=1';
+            }
+        </script>
+        <script src="/static/js/jquery.min.js"></script>
+        <script src="/static/js/jquery-ui.min.js"></script>
+        <script type="text/javascript">
 
-        var pageHeight = {{ page_height }};
+            var pageHeight = {{ page_height }};
 
-        $(document).ready(function () {
-            $(function() {
-                $(".field_div").draggable().resizable({handles: "e, w"});
-                var page = (parseInt($("#page_num").text()) - 1).toString();
-                $("#page_" + page).show();
-            });
-            
-            // обработка смены страниц
-            function change_page(delta) {
-                var old_page = parseInt($("#page_num").text())
-                var new_page = (old_page + delta).toString();
-
-                if (new_page < 1) {
-                    return;
+            $(document).ready(function () {
+                $(function() {
+                    $(".field_div").draggable().resizable({handles: "e, w"});
+                    var page = (parseInt($("#page_num").text()) - 1).toString();
+                    $("#page_" + page).show();
+                });
+                
+                function change_font_size(select_id) {
+                    var select_value = document.getElementById(select_id).value
+                    console.log(select_value, select_id);
                 }
 
-                var query = window.location.search.substring(1);
-                var vars = query.split('&');
-                // ищем в адресной строке параметр номера страницы для изменения
-                var page_num_exist = false;
-                for (var i = 0; i < vars.length; i++) {
-                    var pair = vars[i].split('=');
-                    if (pair[0] == 'page_num') {
-                        vars[i] = pair[0] + '=' + new_page;
-                        page_num_exist = true;
+                // обработка смены страниц
+                function change_page(delta) {
+                    var old_page = parseInt($("#page_num").text())
+                    var new_page = (old_page + delta).toString();
+
+                    if (new_page < 1) {
+                        return;
                     }
+
+                    var query = window.location.search.substring(1);
+                    var vars = query.split('&');
+                    // ищем в адресной строке параметр номера страницы для изменения
+                    var page_num_exist = false;
+                    for (var i = 0; i < vars.length; i++) {
+                        var pair = vars[i].split('=');
+                        if (pair[0] == 'page_num') {
+                            vars[i] = pair[0] + '=' + new_page;
+                            page_num_exist = true;
+                        }
+                    }
+                    // если в адресной строке параметр номера страницы не найден
+                    if (!page_num_exist){
+                        vars[i] = 'page_num=' + new_page;
+                    }
+                    var new_search = "?" + vars.join("&");
+                    window.location.search = new_search;
                 }
-                // если в адресной строке параметр номера страницы не найден
-                if (!page_num_exist){
-                    vars[i] = 'page_num=' + new_page;
+
+                $("#next_page").on("click", function (e) {
+                    change_page(1);
+                })
+
+                $("#prev_page").on("click", function (e) {
+                    change_page(-1);
+                })
+
+                $("#save_pos").on("click", function (e) {
+                    var page_num = (parseInt($("#page_num").text()) - 1).toString();
+                    var page = "page_" + page_num;
+                    var pos = {}
+                    pos[page_num] = []
+                    $("#"+page+" .field_div").each(function (i, el) {
+                        var x = parseFloat($(el).css("left")) + 25;
+                        var y = parseFloat($(el).css("top")) - 52;
+                        var name = $(el).text().trim();
+                        var font_name = $(el).css("font-family").split(",")[0];
+                        var font_size = parseInt($(el).css("font-size"));
+                        var w = parseFloat($(el).css("width"));
+                        var visibility = $("#visibility-" + name).prop("checked");
+                        pos[page_num].push([x, y, name, font_name, font_size, w, visibility])
+                        pos["file_name"] = "{{ pdf_name }}";
+                    })
+                    $.ajax({
+                        type: "POST",
+                        url: "/tpdf/save_form_fields",
+                        {#data: {"pos": JSON.stringify(pos)},#}
+                        contentType: "application/json; charset=utf-8",
+                        data: JSON.stringify({"pos": pos,
+                        "page_height": pageHeight 
+                    }),
+                        dataType: "json"
+                    }).always(function (data, status) {
+                        console.log(data);
+                        console.log(status);
+                        location.reload();
+                    })
+                });
+                
+                $(".sidebar-toggle").on("click", function () {
+                    $(".sidebar").toggleClass("open");
+                });
+    
+                $(".close-btn").on("click", function () {
+                    $(".sidebar").removeClass("open");
+                });
+            });
+        </script>
+        <link rel="stylesheet" href="/static/css/jquery-ui.min.css">
+        <style>
+            {% for font in fonts %}
+                @font-face {
+                    font-family: {{ font }};
+                    src: url("/static/fonts/{{ font }}.ttf");
                 }
-                var new_search = "?" + vars.join("&");
-                window.location.search = new_search;
+            {% endfor %}
+
+            .field_div {
+                overflow: hidden;
+                position: absolute;
+                z-index: 15;
+                background-color: Green;
+                opacity: 0.5;
+                color: red;
+                border-radius: 4px;
+            }
+            .navbar {
+                z-index: 5;
+                height: 45px;
+                background-color: #F6F6F6;
+                display: flex;
+                width: 100%;
+                justify-content: space-between;
+                align-items: center;
+            }
+            .navbar .title, .sidebar-toggle, .upload-csv {
+                font-size: 24px;
+                padding: 0 20px;
+                cursor: pointer;
+                margin-right: 20px;
             }
 
-            $("#next_page").on("click", function (e) {
-                change_page(1);
-            })
-
-            $("#prev_page").on("click", function (e) {
-                change_page(-1);
-            })
-
-            $("#save_pos").on("click", function (e) {
-                var page_num = (parseInt($("#page_num").text()) - 1).toString();
-                var page = "page_" + page_num;
-                var pos = {}
-                pos[page_num] = []
-                $("#"+page+" .field_div").each(function (i, el) {
-                    var x = parseFloat($(el).css("left"));
-                    var y = parseFloat($(el).css("top"));
-                    var name = $(el).text().trim();
-                    var font_name = $(el).css("font-family").split(",")[0];
-                    var font_size = parseInt($(el).css("font-size"));
-                    var w = parseFloat($(el).css("width"));
-                    pos[page_num].push([x, y, name, font_name, font_size, w])
-                    pos["file_name"] = "{{ pdf_name }}";
-                })
-                $.ajax({
-                    type: "POST",
-                    url: "/tpdf/save_form_fields",
-                    {#data: {"pos": JSON.stringify(pos)},#}
-                    contentType: "application/json; charset=utf-8",
-                    data: JSON.stringify({"pos": pos,
-                    "page_height": pageHeight 
-                }),
-                    dataType: "json"
-                }).always(function (data, status) {
-                    console.log(data);
-                    console.log(status);
-                    location.reload();
-                })
-            })
-        })
-    </script>
-    <link rel="stylesheet" href="/static/css/jquery-ui.min.css">
-    <style>
-        {% for font in fonts %}
-            @font-face {
-                font-family: {{ font }};
-                src: url("/static/fonts/{{ font }}.ttf");
+            .sidebar {
+                z-index: 20;
+                width: 500px;
+                height: 100%;
+                top: 0;
+                background-color: #444;
+                position: fixed;
+                right: -500px;
+                color: white;
+                padding: 10px;
+                box-sizing: border-box;
+                display: none;
+                transition: right 0.3s;
             }
-        {% endfor %}
 
-        .field_div {
-            overflow: hidden;
-            position: absolute;
-            z-index: 15;
-            background-color: Green;
-            opacity: 0.5;
-            color: red;
-            border-radius: 4px;
-        }
-    </style>
-    <title>pdf fields</title>
-</head>
-<body>
-{% for page_i in fields.keys() %}
-    <div id="page_{{ page_i }}" style="display: none;">
+            .sidebar.open {
+                display: block;
+                right: 0;
+            }
+
+            .sidebar .close-btn {
+                cursor: pointer;
+                text-align: right;
+            }
+
+            .default_field {
+                margin: 10px 0;
+                padding: 10px;
+                border: 1px solid #ccc;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+            }
+
+            .content, .pannel {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+            }
+
+        </style>
+        <title>pdf fields</title>
+    </head>
+    <body>
+        <!-- Navbar -->
+    <div class="navbar">
+        <div class="title">Tpdf</div>
+        <div style="display:flex; flex-direction:row; align-items: center;">
+            <div class="upload-csv">Загрузить csv</div>
+            <div class="sidebar-toggle">☰</div>
+        </div>
+    </div>
+
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <div class="close-btn">✖</div>
+        <h3 style="display: flex; justify-content: center;">Управление полями</h3>
+        {% for page_i in fields.keys() %}
+        <div id="fields_{{ page_i }}" style="display: none;"></div>
         {% for field in fields[page_i] %}
-            <div class="field_div ui-widget-content"
-                style="
-                    left: {{ field.x }}px;
-                    top: {{ field.y }}px;
-                    width: {{ field.width }}px;
-                    font-size: {{ field.font_size }}px;
-                    font-family: {{ field.font_name }};
-                ">
-                {{ field.name }}
-            </div>
+            <div id="{{ field.name }}" class="default_field">
+                <span>{{ field.name }}</span>
+                <div class="pannel">
+                    <label for="font-size-{{ field.name }}">Размер шрифта:</label>
+                        <select id="font-size-{{ field.name }}">
+                            <option value="12" {% if field.font_size == 16 %}selected{% endif %}>12</option>
+                            <option value="14" {% if field.font_size == 19 %}selected{% endif %}>14</option>
+                            <option value="16" {% if field.font_size == 21 %}selected{% endif %}>16</option>
+                            <option value="18" {% if field.font_size == 24 %}selected{% endif %}>18</option>
+                            <option value="20" {% if field.font_size == 27 %}selected{% endif %}>20</option>
+                            <option value="24" {% if field.font_size == 32 %}selected{% endif %}>24</option>
+                        </select>
+                    <label for="visibility-{{ field.name }}">Видимость:</label>
+                    <input type="checkbox" id="visibility-{{ field.name }}" {{ 'checked' if field.visibility else '' }} onchange="toggleVisibility('{{ field.name }}')">
+                </div>
+            </div> 
+            {% endfor %}
+            <button id="save_fonts">Изменить шрифт</button>
+        </div>
         {% endfor %}
     </div>
-{% endfor %}
-<span style="position:absolute;left:10px; top:300px;">
-    <button id="prev_page">Пред</button>
-    <label id="page_num" style="margin-right: 10px; margin-left: 10px;">{{ page_num }}</label>
-    <button id="next_page">След</button>
-</span>
 
-<span style="position:absolute;left:10px; top:330px;">
-    <button id="save_pos">Сохранить позиции</button>
-</span>
+    {% for page_i in fields.keys() %}
+        <div id="page_{{ page_i }}" style="display: none;">
+            {% for field in fields[page_i] %}
+                {% if field.visibility %}
+                <div class="field_div ui-widget-content"
+                    style="
+                        left: {{ field.x - 25 }}px;
+                        top: {{ field.y + 52 }}px;
+                        width: {{ field.width }}px;
+                        font-size: {{ field.font_size }}px;
+                        font-family: {{ field.font_name }};
+                    ">
+                    {{ field.name }}
+                </div>
+                {% endif %}
+            {% endfor %}
+        </div>
+    {% endfor %}
+    <span style="position:absolute;left:10px; top:300px;">
+        <button id="prev_page">Пред</button>
+        <label id="page_num" style="margin-right: 10px; margin-left: 10px;">{{ page_num }}</label>
+        <button id="next_page">След</button>
+    </span>
 
-<span style="position:absolute;left:10px; top:360px;">
-    <a href="/tpdf/generate_and_download/{{ certificate_id }}">
-    <button id="generate_certificate">Сгенерировать</button>
-    </a>
-</span>
+    <span style="position:absolute;left:10px; top:330px;">
+        <button id="save_pos">Сохранить позиции</button>
+    </span>
 
-<div id="ipdf" style="position:absolute;left:200px;">
-    <iframe src="/tpdf/get_file?pdf_name={{ pdf_name }}#toolbar=0&statusbar=0&navpanes=0&scrollbar=1&zoom=100&page={{ page_num }}"
-            height="{{ page_height * 4/3 }}" width="{{ page_width * 4/3 }}" frameborder="0"></iframe>
-</div>
-<div style="position:absolute;left:200px;z-index: 11;opacity: 0.01;height: 1132px;width: 808px;background-color: green;"></div>
+    <span style="position:absolute;left:10px; top:360px;">
+        <a href="/tpdf/generate_and_download/{{ certificate_id }}">
+        <button id="generate_certificate">Сгенерировать</button>
+        </a>
+    </span>
 
-</body>
-</html>
+    <div id="ipdf" style="position:absolute;left:175px; top: 60px;">
+        <iframe src="/tpdf/get_file?pdf_name={{ pdf_name }}#toolbar=0&statusbar=0&navpanes=0&scrollbar=1&zoom=100&page={{ page_num }}"
+                height="{{ page_height * 4/3 }}" width="{{ page_width * 4/3 }}" frameborder="0"></iframe>
+    </div>
+    <div style="position:absolute;left:175px;z-index: 11;opacity: 0.01; height: {{ page_height * 4/3 }}; width: {{ page_width * 4/3 }};background-color: green;"></div>
+
+    <script type="text/javascript">
+        $("#save_fonts").on('click', function (e) {
+            var font_sizes = {};
+            var visibility = {};
+            var pageParam = urlParams.get('page_num');
+            $('.default_field').each(function () {
+                var field_name = $(this).attr('id');
+                var font_size = $(this).find('select').val();
+                var is_visible = $(this).find('input').is(":checked");
+                font_sizes[field_name] = font_size;
+                visibility[field_name] = is_visible;
+            });
+            $.ajax ({
+                type: "POST",
+                url: "/tpdf/update_font",
+                contentType: "application/json; charset=utf-8",
+                data: JSON.stringify({
+                    "pdf_name": '{{ pdf_name }}',
+                    "page_num": pageParam - 1,
+                    "font_sizes": font_sizes,
+                    "visibility": visibility
+                }),
+                dataType: "json",
+            }).always(function (data, status) {
+                console.log(data);
+                console.log(status);
+                location.reload();
+            })
+        });
+    </script>
+    </body>
+    </html>

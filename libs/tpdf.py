@@ -17,7 +17,7 @@ from reportlab.pdfgen import canvas
 
 CUR_PATH = os.path.dirname(os.path.abspath(__file__))
 FILES = os.path.join(CUR_PATH, "tpdf_templates")
-FieldParams = namedtuple("FieldParams", "x y name font_name font_size width")
+FieldParams = namedtuple("FieldParams", "x y name font_name font_size width visibility")
 # https://stackoverflow.com/questions/139655/convert-pixels-to-points
 corr = {"x": 205.0, "y": 11.0, "px_to_pt": 3 / 4, "pt_to_px": 4 / 3}
 
@@ -111,6 +111,7 @@ class TPdf:
             font_name=field.font_name,
             font_size=font_size,
             width=field.width * scale,
+            visibility=field.visibility
         )
 
     @staticmethod
@@ -127,6 +128,7 @@ class TPdf:
             font_name=field.font_name,
             font_size=font_size,
             width=round(field.width * scale),
+            visibility=field.visibility,
         )
 
     def add_document(self, name, fill_x=False):

@@ -2,3 +2,5 @@ __pycache__
 .idea/*
 ./docs
 libs/tpdf_templates/409f05934Rtyh/*
+venv/
+test.http
