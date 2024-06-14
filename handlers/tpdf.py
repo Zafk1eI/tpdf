@@ -112,7 +112,7 @@ def update_font():
                     field[6] = bool(data['visibility'][field_name])
                     updated = True
         else:
-            return jsonify({"status": "error", "message": "page not found"}), 400
+            continue
 
     if not updated:
         return jsonify({"status": "error", "message": "Field not found"}), 404

@@ -197,8 +197,8 @@
         <div class="close-btn">✖</div>
         <h3 style="display: flex; justify-content: center;">Управление полями</h3>
         {% for page_i in fields.keys() %}
-        <div id="fields_{{ page_i }}" style="display: none;"></div>
-        {% for field in fields[page_i] %}
+        <div id="fields_{{ page_i }}" class="fields-container">PAGE {{ page_i }}</div>
+            {% for field in fields[page_i] %}
             <div id="{{ field.name }}" class="default_field">
                 <span>{{ field.name }}</span>
                 <div class="pannel">
@@ -216,9 +216,9 @@
                 </div>
             </div> 
             {% endfor %}
+        {% endfor %}
             <button id="save_fonts">Изменить шрифт</button>
         </div>
-        {% endfor %}
     </div>
 
     {% for page_i in fields.keys() %}
@@ -266,12 +266,14 @@
             var font_sizes = {};
             var visibility = {};
             var pageParam = urlParams.get('page_num');
+            console.log(pageParam)
             $('.default_field').each(function () {
                 var field_name = $(this).attr('id');
                 var font_size = $(this).find('select').val();
                 var is_visible = $(this).find('input').is(":checked");
                 font_sizes[field_name] = font_size;
                 visibility[field_name] = is_visible;
+                console.log(font_sizes)
             });
             $.ajax ({
                 type: "POST",

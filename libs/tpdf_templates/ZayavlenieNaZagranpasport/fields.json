@@ -1,17 +1,105 @@
 {
     "0": [
-        [184.5, 730.51, "fio", "Arial", 12, 269],
-        [425.25, 681.75, "gender", "DejaVuSans", 12, 18],
-        [206.25, 681.75, "birth_date", "DejaVuSans", 12, 173],
-        [462.75, 681.53, "foto.jpg", "DejaVuSans", 12, 92],
-        [146.25, 665.25, "birth_place", "DejaVuSans", 12, 418],
-        [228.0, 634.5, "registration", "DejaVuSans", 12, 340],
-        [451.5, 607.5, "phone", "DejaVuSans", 12, 113],
-        [394.5, 522.01, "Telephone", "DejaVuSans", 12, 81]
+        [
+            184.5,
+            730.51,
+            "fio",
+            "Arial",
+            12,
+            269,
+            true
+        ],
+        [
+            425.25,
+            681.75,
+            "gender",
+            "DejaVuSans",
+            12,
+            18,
+            false
+        ],
+        [
+            206.25,
+            681.75,
+            "birth_date",
+            "DejaVuSans",
+            12,
+            173,
+            false
+        ],
+        [
+            462.75,
+            681.53,
+            "foto.jpg",
+            "DejaVuSans",
+            12,
+            92,
+            false
+        ],
+        [
+            146.25,
+            665.25,
+            "birth_place",
+            "DejaVuSans",
+            12,
+            418,
+            false
+        ],
+        [
+            228.0,
+            634.5,
+            "registration",
+            "DejaVuSans",
+            12,
+            340,
+            false
+        ],
+        [
+            451.5,
+            607.5,
+            "phone",
+            "DejaVuSans",
+            12,
+            113,
+            false
+        ],
+        [
+            394.5,
+            522.01,
+            "Telephone",
+            "DejaVuSans",
+            12,
+            81,
+            false
+        ]
     ],
     "1": [
-        [129.0, 991.54, "1_work", "DejaVuSans", 10, 260],
-        [127.5, 858.03, "2_work", "Arial", 10, 260],
-        [128.25, 554.28, "3_work", "Arial", 10, 141]
+        [
+            129.0,
+            991.54,
+            "1_work",
+            "DejaVuSans",
+            12,
+            260,
+            true
+        ],
+        [
+            128.25,
+            672.03,
+            "2_work",
+            "Arial",
+            20,
+            260,
+            true
+        ],
+        [
+            128.25,
+            554.28,
+            "3_work",
+            "Arial",
+            12,
+            141,
+            true
+        ]
     ]
 }

@@ -8,7 +8,7 @@ from functools import cached_property
 from glob import glob
 from typing import Generator
 
-from pdfrw import PageMerge, PdfFileReader, PdfFileWriter
+from pdfrw import PageMerge, PdfFileReader, PdfFileWriter, PdfReader
 from reportlab.lib.pagesizes import A4, landscape
 from reportlab.lib.utils import ImageReader
 from reportlab.pdfbase import pdfmetrics
@@ -148,8 +148,11 @@ class TPdf:
         for page_number in range(len(pdf_form.pages)):
             page = pdf_form.getPage(page_number)
             page_num = str(page_number)
+            
+            print(f"Processing page {page_number}")
             # если на данной странице нужно впечатать какие-то поля
             if page_num in pdf_fields and pdf_fields[page_num]:
+                fields_to_print = pdf_fields[page_num]
                 # создаём объект бинарного файла в памяти
                 packet = io.BytesIO()
                 # create a new PDF with Reportlab
@@ -157,7 +160,10 @@ class TPdf:
                 can = canvas.Canvas(packet, pagesize=self.page_size)
                 can.setFont(*last_font)  # в момент создания страницы нужно
                 # перебираем поля и заполняем их в pdf canvas
-                for field in pdf_fields[page_num]:
+                for field in fields_to_print    :
+                    if not field.visibility:
+                        print(f"Skipping invisible field: {field}")
+                        continue
                     # если шрифт изменился, то устанавливаем новое значение
                     new_font = [field.font_name, field.font_size]
                     if last_font != new_font:
@@ -196,7 +202,14 @@ class TPdf:
                 # сохраняем canvas и мерджим его на страницу шаблона (формы)
                 can.save()
                 packet.seek(0)
-                PageMerge(page).add(PdfFileReader(packet).getPage(0)).render()
+                try:
+                    packet_reader = PdfReader(packet)
+                    if packet_reader.pages:
+                        PageMerge(page).add(packet_reader.pages[0]).render()   
+                    else:
+                        print("No pages found")
+                except Exception as e:
+                    print(f'ERROR: {e}')
             # добавляем полученную страницу в свойство для отложенной сборки
             self.documents[name].append(page)
 
