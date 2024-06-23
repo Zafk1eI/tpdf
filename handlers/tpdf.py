@@ -85,7 +85,7 @@ def positioning(certificate_id):
         "positioning.html", **in_data, 
         page_height=height, 
         page_width=width, 
-        certificate_id=certificate_id
+        certificate_id=certificate_id,
     )
     
 @router.route("/tpdf/update_font", methods=["POST"])
@@ -243,30 +243,19 @@ def upload_file(certificate_id):
             return jsonify({"error: File type not allowed"}), 400
 
 
-@router.route("/tpdf/example", methods=["GET"])
-def example():
+@router.route("/tpdf/example/<certificate_id>", methods=["GET"])
+def example(certificate_id):
 
     data = {
         "data": {
             "lastname": "Иванова"
         },
-        "complete": [
-            ["409f05934Rtyh", 1],
-        ],
     }
-
-    # перечень документов в комплекте
-    complete = data["complete"]
     # набор данных для генерации комплекта документов
     user_data = data["data"]
     # загружаем данные в основной класс и получаем комплект документов в pdf
     tpdf = TPdf(**user_data)
     # можно сгенерировать один файл или комплект документов
-    # file = tpdf.get_pdf('ZayavlenieNaZagranpasport', b64='False')
-
-    file = tpdf.get_complete(complete=complete, b64="False")
-
-    with open(file="static/done/save.pdf", mode="wb") as f:
-        f.write(file)
+    file = tpdf.get_pdf(f'{certificate_id}', b64='False')
 
     return ResponseFile.create_response(f"{list(user_data.values())[0]}.pdf", file)

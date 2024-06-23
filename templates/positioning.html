@@ -179,6 +179,15 @@
                 gap: 10px;
             }
 
+            .buttons button, #save_fonts {
+                height: auto;
+                border-radius: 3px;
+                border: none;
+                font-size: 14px;
+                color: #F6F6F6;
+                background-color: #1485BC;
+            }
+
         </style>
         <title>pdf fields</title>
     </head>
@@ -197,6 +206,9 @@
         <div class="close-btn">✖</div>
         <h3 style="display: flex; justify-content: center;">Управление полями</h3>
         {% for page_i in fields.keys() %}
+        {% set page_num_int = page_num | int - 1 %}
+        {% set page_num_str = page_num_int | string %}
+        {% if page_i == page_num_str %}
         <div id="fields_{{ page_i }}" class="fields-container">PAGE {{ page_i }}</div>
             {% for field in fields[page_i] %}
             <div id="{{ field.name }}" class="default_field">
@@ -216,8 +228,11 @@
                 </div>
             </div> 
             {% endfor %}
+        {% endif %}
         {% endfor %}
-            <button id="save_fonts">Изменить шрифт</button>
+            <div style="display:flex; width: 100%; justify-content:flex-end">
+                <button id="save_fonts">Изменить шрифт</button>
+            </div>
         </div>
     </div>
 
@@ -239,27 +254,33 @@
             {% endfor %}
         </div>
     {% endfor %}
-    <span style="position:absolute;left:10px; top:300px;">
-        <button id="prev_page">Пред</button>
+    <div class="buttons" style="width: 150px; display: flex; flex-direction: column; padding-top: 300px; gap: 5px;">
+    <div style="display: flex; justify-content: space-between;">
+        <button style="width: auto;" id="prev_page">Пред</button>
         <label id="page_num" style="margin-right: 10px; margin-left: 10px;">{{ page_num }}</label>
-        <button id="next_page">След</button>
+        <button style="width: auto;" id="next_page">След</button>
+    </div>
+
+    <span>
+        <button style="width: 100%;" id="save_pos">Сохранить позиции</button>
     </span>
 
-    <span style="position:absolute;left:10px; top:330px;">
-        <button id="save_pos">Сохранить позиции</button>
-    </span>
-
-    <span style="position:absolute;left:10px; top:360px;">
+    <span>
         <a href="/tpdf/generate_and_download/{{ certificate_id }}">
-        <button id="generate_certificate">Сгенерировать</button>
+            <button style="width: 100%;" id="generate_certificate">Сгенерировать</button>
         </a>
     </span>
-
-    <div id="ipdf" style="position:absolute;left:175px; top: 60px;">
-        <iframe src="/tpdf/get_file?pdf_name={{ pdf_name }}#toolbar=0&statusbar=0&navpanes=0&scrollbar=1&zoom=100&page={{ page_num }}"
-                height="{{ page_height * 4/3 }}" width="{{ page_width * 4/3 }}" frameborder="0"></iframe>
+    <span>
+        <a href="/tpdf/example/{{ certificate_id }}">
+            <button style="width: 100%;" id="example">Предпросмотр</button>
+        </a>
+    </span>
     </div>
-    <div style="position:absolute;left:175px;z-index: 11;opacity: 0.01; height: {{ page_height * 4/3 }}; width: {{ page_width * 4/3 }};background-color: green;"></div>
+    <div id="ipdf" style="position:absolute; left:175px; top: 60px;">
+        <iframe src="/tpdf/get_file?pdf_name={{ pdf_name }}#toolbar=0&statusbar=0&navpanes=0&scrollbar=1&zoom=100&page={{ page_num }}"
+        height="{{ page_height * 4/3 }}" width="{{ page_width * 4/3 }}" frameborder="0"></iframe>
+    </div>
+    <div style="position:absolute;left:175px;z-index: 11;opacity: 0.01; height:{{ page_height * 4/3 }}; width:{{ page_width * 4/3 }} ; background-color:green;"></div>
 
     <script type="text/javascript">
         $("#save_fonts").on('click', function (e) {
