@@ -171,6 +171,43 @@ def generate_and_download(certificate_id):
         download_name=f"{certificate_id}_certificates.zip"
     )
 
+@router.route("/tpdf/generate/<certificate_id>", methods=["POST"])
+def generate_one(certificate_id):
+    data = request.json
+    
+    if not data:
+        return jsonify({"error": "invalid data"}), 400
+    
+    user_data = data['data'][0]
+    
+    if not data['data']:
+        return jsonify({'error: missing data key'}), 400
+    
+    json_path = os.path.join('libs', 'tpdf_templates', certificate_id, 'fields.json')
+    with open(json_path, 'r', encoding='utf-8') as f:
+        fileds_data = json.load(f)
+    
+    for key in fileds_data:
+        elements = fileds_data[key]
+        
+        for element in elements:
+            fields_name = element[2]
+            is_true = element[6]
+            
+            if is_true:
+                if fields_name not in user_data:
+                    return jsonify({"error": "missing fields", "fields": fields_name}), 400
+            
+    tpdf = TPdf(**user_data)
+    file = tpdf.get_pdf(certificate_id, b64='False')
+    pdf_buffer = BytesIO(file)
+    
+    return send_file(
+        pdf_buffer,
+        mimetype="application/pdf",
+        as_attachment=True,
+        download_name=f"test.pdf"
+    )
 
 @router.route("/tpdf/save_form_fields", methods=["POST"])
 def save_form_fields():
@@ -216,10 +253,12 @@ def allowed_file(filename):
 def upload_file(certificate_id):
     data = {
     "0": [
-        [323.25, 427.45, "", "DejaVuSans", 12, 134],
-        [321.75, 392.95, "FIO", "DejaVuSans", 24, 259],
-        [485.25, 229.45, "state", "DejaVuSans", 12, 119],
-        [154.5, 225.7, "enddata", "DejaVuSans", 12, 88],
+        [323.25, 427.45, "full_name", "DejaVuSans", 12, 134, True],
+        [321.75, 392.95, "event_title", "DejaVuSans", 24, 259, True],
+        [485.25, 229.45, "stage", "DejaVuSans", 12, 119, True],
+        [154.5, 225.7, "end_date", "DejaVuSans", 12, 88, True],
+        [154.5, 225.7, "organization_name", "DejaVuSans", 12, 88, True],
+        [154.5, 225.7, "team_name", "DejaVuSans", 12, 88, True],
     ]
 }
     if request.method == "POST":
