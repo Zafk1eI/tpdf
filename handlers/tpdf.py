@@ -181,7 +181,7 @@ def generate_one(certificate_id):
     user_data = data['data'][0]
     
     if not data['data']:
-        return jsonify({'error: missing data key'}), 400
+        return jsonify({"error": "missing data key"}), 400
     
     json_path = os.path.join('libs', 'tpdf_templates', certificate_id, 'fields.json')
     with open(json_path, 'r', encoding='utf-8') as f:
@@ -263,10 +263,10 @@ def upload_file(certificate_id):
 }
     if request.method == "POST":
         if "file" not in request.files:
-            return jsonify("error: No file"), 400
+            return jsonify({"error": "No file"}), 400
         file = request.files["file"]
         if file.filename == "":
-            return jsonify("error: No selected file"), 400
+            return jsonify({"error": "No selected file"}), 400
         if file and allowed_file(file.filename):
             filename = secure_filename("form.pdf")
             directory = os.path.join("libs", "tpdf_templates", certificate_id)
@@ -274,12 +274,12 @@ def upload_file(certificate_id):
                 os.makedirs(directory, exist_ok=False)
                 file.save(os.path.join(directory, filename))
                 with open(os.path.join(directory, "fields.json"), "w") as json_file:
-                    json.dumps(data, json_file, ensure_ascii=False, indent=4)
-                return jsonify("message: Upload seccessfully"), 200
+                    json.dump(data, json_file, ensure_ascii=False, indent=4)
+                return jsonify({"message": "Upload seccessfully"}), 200
             else:
-                return jsonify("error: dir exist"), 400
+                return jsonify({"error": "dir exist"}), 400
         else:
-            return jsonify({"error: File type not allowed"}), 400
+            return jsonify({"error": "File type not allowed"}), 400
 
 
 @router.route("/tpdf/example/<certificate_id>", methods=["GET"])
@@ -287,8 +287,13 @@ def example(certificate_id):
 
     data = {
         "data": {
-            "lastname": "Иванова"
-        },
+            "full_name": "Иван Иванов",
+            "event_title": "Чемпионат по программированию",
+            "stage": "Финал",
+            "team_name": "Команда А",
+            "organization_name": "ООО Программирование",
+            "end_date": "2024-12-31"
+        }
     }
     # набор данных для генерации комплекта документов
     user_data = data["data"]
