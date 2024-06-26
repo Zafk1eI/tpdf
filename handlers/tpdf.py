@@ -130,26 +130,10 @@ def generate_and_download(certificate_id):
     # TODO : Выбор csv-файла
     # пример полученных данных
     json_data = {
-        "data": [
+        "data":
             {
-                "name": "Вася Пупкин",
-                "nickname": "MusicalDisaster",
-                "discipline": "Dota 2" ,
-                "event_period": "12.02.2004 - 13.02.2004",
-                "chairman": "Ф. И. Васильев",
-                "team": "IDMAN",
-                "winner_tournament": "КИПУ Dota 2" 
-            },
-            {
-                "name": "Вася Пупкин",
-                "nickname": "MusicalDisaster",
-                "discipline": "Dota 2" ,
-                "event_period": "12.02.2004 - 13.02.2004",
-                "chairman": "Ф. И. Васильев",
-                "team": "IDMAN",
-                "winner_tournament": "КИПУ Dota 2" 
+                
             }
-        ]
     }
     user_data = json_data["data"][0]
     print(user_data)
