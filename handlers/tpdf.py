@@ -6,14 +6,11 @@ import zipfile
 import json
 import csv
 
-from io import BytesIO
+from io import BytesIO, StringIO
 from flask import (
     Blueprint,
-    session,
-    request,
-    render_template,
-    jsonify,
-    send_file,
+    session, redirect, request,
+    render_template, jsonify, send_file
 )
 from werkzeug.utils import secure_filename
 
@@ -143,22 +140,22 @@ def upload_csv():
     csv_content = file.read().decode('utf-8')
     session['csv_data'] = csv_content
     
-    return jsonify({"message": "CSV uploaded seccessfully"}), 200
+    return redirect(request.referrer)
 
 
 @router.route("/tpdf/generate_and_download/<string:certificate_id>", methods=["GET"])
 def generate_and_download(certificate_id):
-    # TODO : логика обработки данных
-    # TODO : Выбор csv-файла
-    # пример полученных данных
-    json_data = {
-        "data":
-            {
-                
-            }
-    }
-    user_data = json_data["data"][0]
-    print(user_data)
+    if 'csv_data' not in session:
+        return jsonify({"error": "No CSV data in session"}), 400
+    
+    csv_data = session['csv_data']
+    
+    json_data = {"data":[]}
+    stream = StringIO(csv_data)
+    csv_reader = csv.DictReader(f=stream)
+    
+    for row in csv_reader:
+        json_data["data"].append(row)
     
     zip_data = BytesIO()
     
@@ -166,7 +163,7 @@ def generate_and_download(certificate_id):
         for index, user_data in enumerate(json_data["data"]):
             tpdf = TPdf(**user_data)
             file = tpdf.get_pdf(certificate_id, b64='False')
-            z.writestr(f"{certificate_id}_{index}_{user_data["name"]}.pdf", file)
+            z.writestr(f"{certificate_id}_{index}_{user_data["full_name"]}.pdf", file)
             del tpdf
     zip_data.seek(0)
     

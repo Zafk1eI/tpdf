@@ -187,8 +187,6 @@
                 color: #F6F6F6;
                 background-color: #1485BC;
             }
-            
-            
 
             .upload-csv {
                 font-size: 18px;
@@ -215,9 +213,9 @@
     <div class="navbar">
         <div class="title">Tpdf</div>
         <div style="display:flex; flex-direction:row; align-items: center;">
-            <form class="form_csv" action="tpdf/upload_csv" method="post" enctype="multipart/form-data" target="_self">
+            <form class="form_csv" action="/tpdf/upload_csv" method="post" enctype="multipart/form-data" target="_self">
                 <input type="file" name="file" accept=".csv" required>    
-                <button class="upload-csv">Загрузить csv</button>
+                <button type="submit" class="upload-csv">Загрузить csv</button>
             </form>
             <div class="sidebar-toggle">☰</div>
         </div>
