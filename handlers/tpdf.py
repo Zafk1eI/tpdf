@@ -284,6 +284,19 @@ def upload_file(certificate_id):
         else:
             return jsonify({"error": "File type not allowed"}), 400
 
+@router.route("/tpdf/delete/<certificate_id>", method=["POST"])
+def delete_directory(certificate_id):
+    directory_path = os.path.join("libs", "tpdf_templates", certificate_id)
+
+    if os.path.exists(directory_path):
+        try:
+            os.rmdir(directory_path)  # Удаление директории, если она пуста
+            return jsonify({"message": f"Directory {certificate_id} deleted successfully"}), 200
+        except OSError as e:
+            return jsonify({"error": f"Failed to delete directory: {str(e)}"}), 500
+    else:
+        return jsonify({"error": f"Directory {certificate_id} not found"}), 404
+
 
 @router.route("/tpdf/example/<certificate_id>", methods=["GET"])
 def example(certificate_id):
