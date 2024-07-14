@@ -132,7 +132,7 @@
                 justify-content: space-between;
                 align-items: center;
             }
-            .navbar .title, .sidebar-toggle, .upload-csv {
+            .navbar .title, .sidebar-toggle {
                 font-size: 24px;
                 padding: 0 20px;
                 cursor: pointer;
@@ -187,6 +187,25 @@
                 color: #F6F6F6;
                 background-color: #1485BC;
             }
+            
+            
+
+            .upload-csv {
+                font-size: 18px;
+                padding: 0 20px;
+                cursor: pointer;
+                margin-right: 20px;
+                background-color: transparent;
+                border: 0 ;
+                outline: none;
+            }
+
+            .form_csv {
+                display: flex;
+                margin: 0 auto;
+                align-items: center;
+                flex-direction: row;
+            }
 
         </style>
         <title>pdf fields</title>
@@ -196,7 +215,10 @@
     <div class="navbar">
         <div class="title">Tpdf</div>
         <div style="display:flex; flex-direction:row; align-items: center;">
-            <div class="upload-csv">Загрузить csv</div>
+            <form class="form_csv" action="tpdf/upload_csv" method="post" enctype="multipart/form-data" target="_self">
+                <input type="file" name="file" accept=".csv" required>    
+                <button class="upload-csv">Загрузить csv</button>
+            </form>
             <div class="sidebar-toggle">☰</div>
         </div>
     </div>

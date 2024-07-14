@@ -4,11 +4,12 @@ from urllib.parse import quote
 from pdfrw import PdfReader
 import zipfile
 import json
-
+import csv
 
 from io import BytesIO
 from flask import (
     Blueprint,
+    session,
     request,
     render_template,
     jsonify,
@@ -42,6 +43,11 @@ class ResponseFile:
             download_name=file_name,
             as_attachment=False,
         )
+
+
+@router.before_request
+def make_session():
+    session.permanent = True
 
 
 @router.route("/tpdf/positioning/<string:certificate_id>", methods=["GET"])
@@ -122,8 +128,24 @@ def update_font():
         json.dump(fields, json_file, ensure_ascii=False, indent=4)
 
     return jsonify({"status": "success"}), 200
+
     
+@router.route('/tpdf/upload_csv', methods=['POST'])
+def upload_csv():
+    if request.method != "POST":
+        return jsonify({"error": "unsupported method"}), 400
     
+    if 'file' not in request.files:
+        return jsonify({"error": "No file part"}), 400
+    
+    file = request.files['file']
+    
+    csv_content = file.read().decode('utf-8')
+    session['csv_data'] = csv_content
+    
+    return jsonify({"message": "CSV uploaded seccessfully"}), 200
+
+
 @router.route("/tpdf/generate_and_download/<string:certificate_id>", methods=["GET"])
 def generate_and_download(certificate_id):
     # TODO : логика обработки данных
